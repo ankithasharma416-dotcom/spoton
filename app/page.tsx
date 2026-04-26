@@ -1,65 +1,151 @@
-import Image from "next/image";
+const stories = [
+  { id: 1, name: "Ashli", gradient: "from-green-500 to-teal-400" },
+  { id: 2, name: "Adi", gradient: "from-purple-500 to-pink-400" },
+  { id: 3, name: "Deepa", gradient: "from-blue-500 to-cyan-400" },
+  { id: 4, name: "Sam", gradient: "from-orange-500 to-yellow-400" },
+  { id: 5, name: "Sanam", gradient: "from-red-500 to-rose-400" },
+];
+
+const posts = [
+  {
+    id: 1,
+    user: "Ashli",
+    playlist: "Late Night Drive",
+    caption: "this playlist hits different at 2am 🌙",
+    songs: 14,
+    coverFrom: "#0f3460",
+    coverTo: "#1DB954",
+    likes: 42,
+  },
+  {
+    id: 2,
+    user: "Adi",
+    playlist: "Serotonin Boost",
+    caption: "for when you need to feel something good ✨",
+    songs: 20,
+    coverFrom: "#4a0e8f",
+    coverTo: "#9B59B6",
+    likes: 87,
+  },
+  {
+    id: 3,
+    user: "Deepa",
+    playlist: "hyperpop brain rot",
+    caption: "don't judge me 💀",
+    songs: 31,
+    coverFrom: "#1a1a2e",
+    coverTo: "#e94560",
+    likes: 134,
+  },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen">
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pt-12 pb-4">
+        <h1 className="text-2xl font-bold" style={{ color: "var(--accent-green)" }}>
+          spoton
+        </h1>
+        <div
+          className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
+          style={{ backgroundColor: "var(--accent-purple)" }}
+        >
+          A
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </div>
+
+      {/* Stories */}
+      <div className="px-4 mb-6">
+        <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+
+          {/* Add your story */}
+          <div className="flex flex-col items-center gap-1 flex-shrink-0">
+            <div
+              className="w-16 h-16 rounded-full border-2 border-dashed flex items-center justify-center"
+              style={{ borderColor: "var(--accent-green)" }}
+            >
+              <span className="text-2xl font-light" style={{ color: "var(--accent-green)" }}>+</span>
+            </div>
+            <span className="text-xs" style={{ color: "var(--muted)" }}>your vibe</span>
+          </div>
+
+          {/* Other stories */}
+          {stories.map((story) => (
+            <div key={story.id} className="flex flex-col items-center gap-1 flex-shrink-0 cursor-pointer">
+              <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${story.gradient} p-0.5`}>
+                <div
+                  className="w-full h-full rounded-full flex items-center justify-center text-sm font-bold"
+                  style={{ backgroundColor: "var(--card)" }}
+                >
+                  {story.name[0].toUpperCase()}
+                </div>
+              </div>
+              <span className="text-xs" style={{ color: "var(--muted)" }}>{story.name}</span>
+            </div>
+          ))}
         </div>
-      </main>
+      </div>
+
+      {/* Divider */}
+      <div className="mx-4 mb-6 h-px" style={{ backgroundColor: "var(--border)" }} />
+
+      {/* Feed */}
+      <div className="px-4 flex flex-col gap-5">
+        {posts.map((post) => (
+          <div
+            key={post.id}
+            className="rounded-2xl overflow-hidden border"
+            style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
+          >
+            {/* Post header */}
+            <div className="flex items-center gap-3 p-4">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                style={{ backgroundColor: "var(--accent-purple)" }}
+              >
+                {post.user[0].toUpperCase()}
+              </div>
+              <span className="font-medium text-sm">{post.user}</span>
+              <span className="ml-auto text-xs" style={{ color: "var(--muted)" }}>2h ago</span>
+            </div>
+
+            {/* Playlist cover */}
+            <div
+              className="mx-4 rounded-xl h-44 flex flex-col items-center justify-center gap-2 mb-4"
+              style={{ background: `linear-gradient(135deg, ${post.coverFrom}, ${post.coverTo})` }}
+            >
+              <span className="text-4xl">🎵</span>
+              <p className="text-white font-bold text-lg">{post.playlist}</p>
+              <p className="text-white/60 text-sm">{post.songs} songs</p>
+            </div>
+
+            {/* Caption + actions */}
+            <div className="px-4 pb-4">
+              <p className="text-sm mb-3">{post.caption}</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <button className="text-sm" style={{ color: "var(--muted)" }}>
+                    ♥ {post.likes}
+                  </button>
+                  <button className="text-sm" style={{ color: "var(--muted)" }}>
+                    💬 reply
+                  </button>
+                </div>
+                <button
+                  className="text-xs font-bold px-4 py-1.5 rounded-full text-black"
+                  style={{ backgroundColor: "var(--accent-green)" }}
+                >
+                  ▶ play
+                </button>
+              </div>
+            </div>
+
+          </div>
+        ))}
+      </div>
+
     </div>
   );
 }
