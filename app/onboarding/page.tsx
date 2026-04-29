@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
+import { supabase } from "../lib/supabase";
 
 const genres = ["Indie", "Alt-Rock", "Hyperpop", "R&B", "Lo-fi", "Pop", "Jazz", "Metal", "Classical", "Hip-Hop"];
 
@@ -8,11 +9,25 @@ export default function Onboarding() {
   const [step, setStep] = useState(1);
   const [displayName, setDisplayName] = useState("");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [email, setEmail] = useState("");
 
   const toggleGenre = (genre: string) => {
     setSelectedGenres((prev) =>
       prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]
     );
+  };
+
+  const handleSignUp = async () => {
+    if (!email) return;
+    const { error } = await supabase.auth.signUp({
+      email,
+      password: "spoton2026!",
+    });
+    if (error) {
+      alert(error.message);
+    } else {
+      setStep(3);
+    }
   };
 
   // Step 1 — Welcome
@@ -33,8 +48,8 @@ export default function Onboarding() {
             <span style={{ color: "var(--accent-purple)" }}>on</span>
           </h1>
           <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
-            connect with people through music.{"\n"}
-            no real name. no phone number.{"\n"}
+            connect with people through music.
+            no real name. no phone number.
             just your taste.
           </p>
         </div>
@@ -55,7 +70,7 @@ export default function Onboarding() {
           </button>
         </div>
         <p className="text-xs text-center" style={{ color: "var(--muted)" }}>
-          by continuing you agree to our terms.{"\n"}
+          by continuing you agree to our terms.
           we never sell your data. ever.
         </p>
       </div>
@@ -66,19 +81,19 @@ export default function Onboarding() {
   if (step === 2) {
     return (
       <div className="min-h-screen flex flex-col px-6 pt-16">
-        <div className="mb-2">
-          <p className="text-xs font-semibold uppercase tracking-wider mb-6"
-            style={{ color: "var(--accent-green)" }}>step 1 of 3</p>
-          <h2 className="text-2xl font-bold mb-2">what's your email?</h2>
-          <p className="text-sm" style={{ color: "var(--muted)" }}>
-            just for verification — it'll never show on your profile
-          </p>
-        </div>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-6"
+          style={{ color: "var(--accent-green)" }}>step 1 of 3</p>
+        <h2 className="text-2xl font-bold mb-2">what's your email?</h2>
+        <p className="text-sm" style={{ color: "var(--muted)" }}>
+          just for verification — it'll never show on your profile
+        </p>
 
         <div className="mt-8 flex flex-col gap-4">
           <input
             type="email"
             placeholder="your@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-4 rounded-2xl text-sm outline-none border"
             style={{
               backgroundColor: "var(--card)",
@@ -87,7 +102,7 @@ export default function Onboarding() {
             }}
           />
           <button
-            onClick={() => setStep(3)}
+            onClick={handleSignUp}
             className="w-full py-4 rounded-2xl font-bold text-black text-sm"
             style={{ backgroundColor: "var(--accent-green)" }}
           >
@@ -124,7 +139,6 @@ export default function Onboarding() {
         </p>
 
         <div className="mt-8 flex flex-col gap-4">
-          {/* Avatar picker */}
           <div className="flex items-center gap-4 p-4 rounded-2xl border"
             style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
             <div
