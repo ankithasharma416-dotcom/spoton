@@ -10,23 +10,46 @@ export default function Onboarding() {
   const [displayName, setDisplayName] = useState("");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [email, setEmail] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
 
   const toggleGenre = (genre: string) => {
-    setSelectedGenres((prev) =>
-      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]
-    );
+    setSelectedGenres((prev) => {
+      if (prev.includes(genre)) return prev.filter((g) => g !== genre);
+      if (prev.length >= 5) return prev;
+      return [...prev, genre];
+    });
   };
 
   const handleSignUp = async () => {
     if (!email) return;
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password: "spoton2026!",
     });
     if (error) {
       alert(error.message);
     } else {
+      setUserId(data.user?.id ?? null);
       setStep(3);
+    }
+  };
+
+  const handleFinish = async () => {
+    if (!userId) {
+      alert("Session error — please try again");
+      return;
+    }
+    const { error } = await supabase
+      .from("profiles")
+      .insert({
+        id: userId,
+        display_name: displayName,
+        top_genres: selectedGenres.join(","),
+      });
+    if (error) {
+      alert(error.message);
+    } else {
+      window.location.href = "/";
     }
   };
 
@@ -87,7 +110,6 @@ export default function Onboarding() {
         <p className="text-sm" style={{ color: "var(--muted)" }}>
           just for verification — it'll never show on your profile
         </p>
-
         <div className="mt-8 flex flex-col gap-4">
           <input
             type="email"
@@ -109,13 +131,11 @@ export default function Onboarding() {
             continue
           </button>
         </div>
-
         <div className="mt-6 flex items-center gap-3">
           <div className="flex-1 h-px" style={{ backgroundColor: "var(--border)" }} />
           <span className="text-xs" style={{ color: "var(--muted)" }}>or</span>
           <div className="flex-1 h-px" style={{ backgroundColor: "var(--border)" }} />
         </div>
-
         <button
           onClick={() => setStep(3)}
           className="mt-6 w-full py-4 rounded-2xl font-bold text-sm border flex items-center justify-center gap-2"
@@ -137,7 +157,6 @@ export default function Onboarding() {
         <p className="text-sm" style={{ color: "var(--muted)" }}>
           this is how people will know you. no real names needed.
         </p>
-
         <div className="mt-8 flex flex-col gap-4">
           <div className="flex items-center gap-4 p-4 rounded-2xl border"
             style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
@@ -154,7 +173,6 @@ export default function Onboarding() {
               </p>
             </div>
           </div>
-
           <input
             type="text"
             placeholder="e.g. moonchild, wavyy, static_k"
@@ -167,7 +185,6 @@ export default function Onboarding() {
               color: "var(--foreground)",
             }}
           />
-
           <button
             onClick={() => setStep(4)}
             disabled={!displayName.trim()}
@@ -189,9 +206,8 @@ export default function Onboarding() {
           style={{ color: "var(--accent-green)" }}>step 3 of 3</p>
         <h2 className="text-2xl font-bold mb-2">what do you vibe with?</h2>
         <p className="text-sm mb-8" style={{ color: "var(--muted)" }}>
-          pick at least 3 genres — this is how we find your people
+          pick 3 to 5 genres — this is how we find your people
         </p>
-
         <div className="flex flex-wrap gap-3 mb-10">
           {genres.map((genre) => {
             const selected = selectedGenres.includes(genre);
@@ -211,20 +227,20 @@ export default function Onboarding() {
             );
           })}
         </div>
-
         <button
-          onClick={() => window.location.href = "/"}
+          onClick={handleFinish}
           disabled={selectedGenres.length < 3}
           className="w-full py-4 rounded-2xl font-bold text-black text-sm disabled:opacity-40"
           style={{ backgroundColor: "var(--accent-green)" }}
         >
           lets go 🎵
         </button>
-
         <p className="text-xs text-center mt-3" style={{ color: "var(--muted)" }}>
           {selectedGenres.length < 3
-            ? `pick ${3 - selectedGenres.length} more`
-            : `${selectedGenres.length} selected — looking good!`}
+            ? `pick ${3 - selectedGenres.length} more to continue`
+            : selectedGenres.length === 5
+            ? `5/5 selected — max reached!`
+            : `${selectedGenres.length}/5 selected — looking good!`}
         </p>
       </div>
     );
