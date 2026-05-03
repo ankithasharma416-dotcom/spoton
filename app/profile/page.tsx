@@ -1,153 +1,189 @@
 "use client";
-import { useState } from "react";
 
-const genres = ["Indie", "Alt-Rock", "Hyperpop", "R&B", "Lo-fi", "Pop"];
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { supabase } from "../lib/supabase";
 
-const topArtists = [
-  { id: 1, name: "Arctic Monkeys", genre: "Indie Rock" },
-  { id: 2, name: "Billie Eilish", genre: "Alt-Pop" },
-  { id: 3, name: "Frank Ocean", genre: "R&B" },
-];
+interface Profile {
+  display_name: string;
+  top_genres: string[] | null;
+}
 
-const playlists = [
-  { id: 1, name: "Late Night Drive", songs: 14, coverFrom: "#0f3460", coverTo: "#1DB954" },
-  { id: 2, name: "Serotonin Boost", songs: 20, coverFrom: "#4a0e8f", coverTo: "#9B59B6" },
-  { id: 3, name: "brain rot hours", songs: 31, coverFrom: "#1a1a2e", coverTo: "#e94560" },
-];
+export default function ProfilePage() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notLoggedIn, setNotLoggedIn] = useState(false);
 
-export default function Profile() {
-  const [isDark, setIsDark] = useState(true);
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+          setNotLoggedIn(true);
+          setLoading(false);
+          return;
+        }
+
+        const { data } = await supabase
+          .from("profiles")
+          .select("display_name, top_genres")
+          .eq("id", user.id)
+          .single();
+
+        if (data) setProfile(data);
+      } catch (err) {
+        console.log("Profile load error:", err);
+        setNotLoggedIn(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProfile();
+  }, []);
 
   const toggleTheme = () => {
-    setIsDark(!isDark);
     document.documentElement.classList.toggle("dark");
   };
 
-  return (
-    <div className="min-h-screen pb-10">
+  const displayName = profile?.display_name ?? "Anonymous";
 
+  // Safe array — handles null, undefined, or accidental string
+  const genres: string[] = Array.isArray(profile?.top_genres)
+    ? profile!.top_genres
+    : [];
+
+  const initials = displayName.slice(0, 2).toUpperCase();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: "var(--background)" }}>
+        <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+          style={{ borderColor: "var(--accent-green)" }} />
+      </div>
+    );
+  }
+
+  if (notLoggedIn) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6"
+        style={{ backgroundColor: "var(--background)" }}>
+        <p className="text-4xl">🎵</p>
+        <p className="font-semibold text-center" style={{ color: "var(--foreground)" }}>
+          You're not logged in
+        </p>
+        <p className="text-sm text-center" style={{ color: "var(--muted)" }}>
+          Sign up to see your profile
+        </p>
+        <button
+          onClick={() => window.location.href = "/onboarding"}
+          className="mt-2 px-6 py-3 rounded-2xl font-semibold text-white"
+          style={{ backgroundColor: "var(--accent-green)" }}
+        >
+          Get Started
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <main className="min-h-screen pb-24" style={{ backgroundColor: "var(--background)" }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-12 pb-4">
-        <span className="text-2xl font-bold tracking-tight"
-          style={{ color: "var(--accent-green)" }}>
-          spot<span style={{ color: "var(--accent-purple)" }}>on</span>
-        </span>
+      <div className="flex items-center justify-between px-4 pt-14 pb-4">
+        <h1 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>
+          Profile
+        </h1>
         <button
           onClick={toggleTheme}
-          className="text-xl px-3 py-1 rounded-full border"
+          className="text-sm px-3 py-1 rounded-full border"
           style={{ borderColor: "var(--border)", color: "var(--muted)" }}
         >
-          {isDark ? "☀️" : "🌙"}
+          Toggle Theme
         </button>
       </div>
 
       {/* Avatar + Name */}
-      <div className="flex flex-col items-center gap-3 px-4 py-6">
+      <div className="flex flex-col items-center px-4 py-6">
         <div
-          className="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold"
+          className="w-24 h-24 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-4"
           style={{ background: "linear-gradient(135deg, var(--accent-green), var(--accent-purple))" }}
         >
-          A
+          {initials}
         </div>
-        <h2 className="text-xl font-bold">ankitha</h2>
+
+        <h2 className="text-2xl font-bold mb-1" style={{ color: "var(--foreground)" }}>
+          {displayName}
+        </h2>
+
         <span
-          className="text-xs px-3 py-1 rounded-full font-semibold"
-          style={{ backgroundColor: "var(--accent-purple)20", color: "var(--accent-purple)" }}
+          className="text-xs px-3 py-1 rounded-full font-medium"
+          style={{ backgroundColor: "var(--accent-purple)", color: "#fff" }}
         >
-          🎧 Melancholic Indie Kid
+          🎵 Music Lover
         </span>
-
-        {/* Stats */}
-        <div className="flex gap-8 mt-2">
-          <div className="flex flex-col items-center">
-            <span className="font-bold text-lg">24</span>
-            <span className="text-xs" style={{ color: "var(--muted)" }}>posts</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="font-bold text-lg">138</span>
-            <span className="text-xs" style={{ color: "var(--muted)" }}>connected</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="font-bold text-lg">94%</span>
-            <span className="text-xs" style={{ color: "var(--muted)" }}>avg match</span>
-          </div>
-        </div>
       </div>
 
-      {/* Genre Tags */}
-      <div className="px-4 mb-6">
-        <p className="text-xs font-semibold mb-3 uppercase tracking-wider"
-          style={{ color: "var(--muted)" }}>your genres</p>
-        <div className="flex flex-wrap gap-2">
-          {genres.map((genre) => (
-            <span
-              key={genre}
-              className="text-xs px-3 py-1.5 rounded-full border font-medium"
-              style={{ borderColor: "var(--accent-green)", color: "var(--accent-green)" }}
-            >
-              {genre}
-            </span>
-          ))}
-        </div>
+      {/* Stats */}
+      <div
+        className="mx-4 rounded-2xl p-4 grid grid-cols-3 text-center mb-6"
+        style={{ backgroundColor: "var(--card)" }}
+      >
+        {[
+          { label: "Posts", value: "—" },
+          { label: "Connected", value: "—" },
+          { label: "Avg Match", value: "—" },
+        ].map((stat) => (
+          <div key={stat.label}>
+            <p className="text-xl font-bold" style={{ color: "var(--foreground)" }}>
+              {stat.value}
+            </p>
+            <p className="text-xs" style={{ color: "var(--muted)" }}>
+              {stat.label}
+            </p>
+          </div>
+        ))}
       </div>
 
-      {/* Top Artists */}
-      <div className="px-4 mb-6">
-        <p className="text-xs font-semibold mb-3 uppercase tracking-wider"
-          style={{ color: "var(--muted)" }}>top artists</p>
-        <div className="flex flex-col gap-3">
-          {topArtists.map((artist, index) => (
-            <div key={artist.id} className="flex items-center gap-3">
-              <span className="text-sm font-bold w-5" style={{ color: "var(--muted)" }}>
-                {index + 1}
-              </span>
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                style={{ backgroundColor: "var(--accent-purple)" }}
+      {/* Top Genres */}
+      {genres.length > 0 && (
+        <div className="px-4 mb-6">
+          <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--muted)" }}>
+            YOUR GENRES
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {genres.map((genre) => (
+              <motion.span
+                key={genre}
+                whileTap={{ scale: 0.95 }}
+                className="px-3 py-1 rounded-full text-sm font-medium"
+                style={{
+                  backgroundColor: "var(--card)",
+                  color: "var(--accent-green)",
+                  border: "1px solid var(--accent-green)"
+                }}
               >
-                {artist.name[0]}
-              </div>
-              <div>
-                <p className="text-sm font-medium">{artist.name}</p>
-                <p className="text-xs" style={{ color: "var(--muted)" }}>{artist.genre}</p>
-              </div>
-            </div>
-          ))}
+                {genre}
+              </motion.span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Playlists */}
+      {/* Sign Out */}
       <div className="px-4">
-        <p className="text-xs font-semibold mb-3 uppercase tracking-wider"
-          style={{ color: "var(--muted)" }}>your playlists</p>
-        <div className="flex flex-col gap-3">
-          {playlists.map((playlist) => (
-            <div
-              key={playlist.id}
-              className="flex items-center gap-3 p-3 rounded-xl border"
-              style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
-            >
-              <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center text-xl flex-shrink-0"
-                style={{ background: `linear-gradient(135deg, ${playlist.coverFrom}, ${playlist.coverTo})` }}
-              >
-                🎵
-              </div>
-              <div>
-                <p className="text-sm font-medium">{playlist.name}</p>
-                <p className="text-xs" style={{ color: "var(--muted)" }}>{playlist.songs} songs</p>
-              </div>
-              <button
-                className="ml-auto text-xs font-bold px-3 py-1 rounded-full text-black"
-                style={{ backgroundColor: "var(--accent-green)" }}
-              >
-                ▶
-              </button>
-            </div>
-          ))}
-        </div>
+        <button
+          onClick={async () => {
+            await supabase.auth.signOut();
+            window.location.href = "/onboarding";
+          }}
+          className="w-full py-3 rounded-2xl text-sm font-semibold"
+          style={{ backgroundColor: "var(--card)", color: "var(--muted)" }}
+        >
+          Sign Out
+        </button>
       </div>
-
-    </div>
+    </main>
   );
 }

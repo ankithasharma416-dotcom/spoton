@@ -1,199 +1,200 @@
 "use client";
-import { useState } from "react";
 
-const conversations = [
-  {
-    id: 1,
-    name: "Ashli",
-    lastMessage: "omg this playlist is everything 😭",
-    time: "2m ago",
-    unread: 2,
-    playlistForMe: "Late Night Drive",
-    coverFrom: "#0f3460",
-    coverTo: "#1DB954",
-  },
-  {
-    id: 2,
-    name: "Adi",
-    lastMessage: "made you something 🎵",
-    time: "1h ago",
-    unread: 1,
-    playlistForMe: "hyperpop brain rot",
-    coverFrom: "#1a1a2e",
-    coverTo: "#e94560",
-  },
-  {
-    id: 3,
-    name: "Deepa",
-    lastMessage: "listen to this rn trust",
-    time: "3h ago",
-    unread: 0,
-    playlistForMe: "Serotonin Boost",
-    coverFrom: "#4a0e8f",
-    coverTo: "#9B59B6",
-  },
-];
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "../lib/supabase";
 
-const mockMessages = [
-  { id: 1, from: "them", text: "hey! made you a playlist 🎵" },
-  { id: 2, from: "me", text: "wait already?? let me listen" },
-  { id: 3, from: "them", text: "it's giving late night drive vibes" },
-  { id: 4, from: "me", text: "this is so accurate omg" },
-  { id: 5, from: "them", text: "i KNOW you 😭" },
-];
+interface Message {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  created_at: string;
+}
 
-export default function Chat() {
-  const [activeChat, setActiveChat] = useState<null | typeof conversations[0]>(null);
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState(mockMessages);
+// Hardcoded for now — will be dynamic when we add real user connections
+const MOCK_RECEIVER_ID = "00000000-0000-0000-0000-000000000001";
 
-  const sendMessage = () => {
-    if (!message.trim()) return;
-    setMessages([...messages, { id: messages.length + 1, from: "me", text: message }]);
-    setMessage("");
-  };
+export default function ChatPage() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
 
-  if (activeChat) {
+  useEffect(() => {
+    async function init() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setLoading(false); return; }
+        setUserId(user.id);
+
+        const { data } = await supabase
+          .from("messages")
+          .select("*")
+          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+          .order("created_at", { ascending: true });
+
+        if (data) setMessages(data);
+      } catch (err) {
+        console.log("Chat load error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    init();
+  }, []);
+
+  async function sendMessage() {
+    if (!newMessage.trim() || !userId || sending) return;
+
+    setSending(true);
+    const content = newMessage.trim();
+    setNewMessage("");
+
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({
+        sender_id: userId,
+        receiver_id: MOCK_RECEIVER_ID,
+        content,
+      })
+      .select()
+      .single();
+
+    if (data) {
+      setMessages((prev) => [...prev, data]);
+    }
+    if (error) console.log("Send error:", error);
+    setSending(false);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: "var(--background)" }}>
+        <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+          style={{ borderColor: "var(--accent-green)" }} />
+      </div>
+    );
+  }
 
-        {/* Chat Header */}
-        <div className="flex items-center gap-3 px-4 pt-12 pb-4 border-b"
-          style={{ borderColor: "var(--border)" }}>
-          <button onClick={() => setActiveChat(null)}
-            className="text-xl" style={{ color: "var(--muted)" }}>
-            ←
-          </button>
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
-            style={{ backgroundColor: "var(--accent-purple)" }}>
-            {activeChat.name[0]}
-          </div>
-          <span className="font-semibold">{activeChat.name}</span>
-        </div>
-
-        {/* Playlist Banner — the signature feature! */}
-        <div className="mx-4 mt-4 rounded-2xl overflow-hidden border"
-          style={{ borderColor: "var(--border)" }}>
-          <div className="h-16 flex items-center gap-3 px-4"
-            style={{ background: `linear-gradient(135deg, ${activeChat.coverFrom}, ${activeChat.coverTo})` }}>
-            <span className="text-2xl">🎵</span>
-            <div className="flex-1">
-              <p className="text-white text-xs font-semibold">
-                {activeChat.name} made this for you
-              </p>
-              <p className="text-white font-bold">{activeChat.playlistForMe}</p>
-            </div>
-            <button className="bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full">
-              ▶ play
-            </button>
-          </div>
-        </div>
-
-        {/* Make them a playlist button */}
-        <div className="mx-4 mt-2">
-          <button className="w-full py-2.5 rounded-xl border border-dashed text-sm font-medium"
-            style={{ borderColor: "var(--accent-purple)", color: "var(--accent-purple)" }}>
-            🎵 make a playlist for {activeChat.name}
-          </button>
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 px-4 py-4 flex flex-col gap-3 overflow-y-auto">
-          {messages.map((msg) => (
-            <div key={msg.id}
-              className={`flex ${msg.from === "me" ? "justify-end" : "justify-start"}`}>
-              <div
-                className="max-w-xs px-4 py-2.5 rounded-2xl text-sm"
-                style={{
-                  backgroundColor: msg.from === "me" ? "var(--accent-green)" : "var(--card)",
-                  color: msg.from === "me" ? "#000" : "var(--foreground)",
-                  borderRadius: msg.from === "me" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-                }}
-              >
-                {msg.text}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Message Input */}
-        <div className="px-4 pb-6 flex gap-2 items-center">
-          <input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            placeholder="say something..."
-            className="flex-1 px-4 py-3 rounded-full text-sm outline-none border"
-            style={{
-              backgroundColor: "var(--card)",
-              borderColor: "var(--border)",
-              color: "var(--foreground)",
-            }}
-          />
-          <button
-            onClick={sendMessage}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-black font-bold"
-            style={{ backgroundColor: "var(--accent-green)" }}
-          >
-            ↑
-          </button>
-        </div>
-
+  if (!userId) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6"
+        style={{ backgroundColor: "var(--background)" }}>
+        <p className="text-4xl">💬</p>
+        <p className="font-semibold" style={{ color: "var(--foreground)" }}>
+          Sign in to chat
+        </p>
+        <button
+          onClick={() => window.location.href = "/onboarding"}
+          className="px-6 py-3 rounded-2xl font-semibold text-white"
+          style={{ backgroundColor: "var(--accent-green)" }}
+        >
+          Get Started
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
+    <main className="min-h-screen flex flex-col pb-24"
+      style={{ backgroundColor: "var(--background)" }}>
 
       {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-12 pb-4">
-        <span className="text-2xl font-bold tracking-tight"
-          style={{ color: "var(--accent-green)" }}>
-          spot<span style={{ color: "var(--accent-purple)" }}>on</span>
-        </span>
-        <span className="text-xs font-medium px-3 py-1 rounded-full"
-          style={{ backgroundColor: "var(--accent-purple)20", color: "var(--accent-purple)" }}>
-          messages
-        </span>
+      <div className="px-4 pt-14 pb-4 border-b"
+        style={{ borderColor: "var(--border)" }}>
+        <h1 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>
+          Chat
+        </h1>
       </div>
 
-      {/* Conversation List */}
-      <div className="px-4 flex flex-col gap-3">
-        {conversations.map((convo) => (
-          <button
-            key={convo.id}
-            onClick={() => setActiveChat(convo)}
-            className="flex items-center gap-3 p-4 rounded-2xl border w-full text-left"
-            style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
-          >
-            {/* Avatar with playlist color */}
-            <div className="relative flex-shrink-0">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
-                style={{ background: `linear-gradient(135deg, ${convo.coverFrom}, ${convo.coverTo})` }}>
-                {convo.name[0]}
-              </div>
-              {convo.unread > 0 && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs text-black font-bold"
-                  style={{ backgroundColor: "var(--accent-green)" }}>
-                  {convo.unread}
+      {/* Playlist Banner — SPOTON signature feature */}
+      <div className="mx-4 mt-4 rounded-2xl p-4 flex items-center justify-between"
+        style={{ backgroundColor: "var(--card)" }}>
+        <div>
+          <p className="text-xs font-semibold mb-1" style={{ color: "var(--accent-green)" }}>
+            🎵 PLAYLIST CHAT
+          </p>
+          <p className="text-sm" style={{ color: "var(--muted)" }}>
+            Build a playlist for each other while you chat
+          </p>
+        </div>
+        <button
+          className="text-xs px-3 py-2 rounded-xl font-semibold text-white shrink-0 ml-3"
+          style={{ backgroundColor: "var(--accent-purple)" }}
+        >
+          + Add Song
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 px-4 py-4 flex flex-col gap-3 overflow-y-auto">
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center flex-1 py-12"
+            style={{ color: "var(--muted)" }}>
+            <p className="text-4xl mb-3">🎶</p>
+            <p className="text-sm">No messages yet</p>
+            <p className="text-xs mt-1">Say hi and share some music!</p>
+          </div>
+        ) : (
+          messages.map((msg) => {
+            const isMine = msg.sender_id === userId;
+            return (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className="max-w-xs px-4 py-2 rounded-2xl text-sm"
+                  style={{
+                    backgroundColor: isMine ? "var(--accent-green)" : "var(--card)",
+                    color: isMine ? "#fff" : "var(--foreground)",
+                  }}
+                >
+                  {msg.content}
                 </div>
-              )}
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-semibold text-sm">{convo.name}</span>
-                <span className="text-xs" style={{ color: "var(--muted)" }}>{convo.time}</span>
-              </div>
-              <p className="text-xs truncate" style={{ color: "var(--muted)" }}>
-                🎵 {convo.playlistForMe} · {convo.lastMessage}
-              </p>
-            </div>
-          </button>
-        ))}
+              </motion.div>
+            );
+          })
+        )}
       </div>
 
-    </div>
+      {/* Input */}
+      <div className="px-4 pb-4 flex gap-2 items-center">
+        <input
+          type="text"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Type a message..."
+          className="flex-1 px-4 py-3 rounded-2xl text-sm outline-none"
+          style={{
+            backgroundColor: "var(--card)",
+            color: "var(--foreground)",
+            border: "1px solid var(--border)",
+          }}
+        />
+        <button
+          onClick={sendMessage}
+          disabled={!newMessage.trim() || sending}
+          className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold shrink-0 disabled:opacity-40"
+          style={{ backgroundColor: "var(--accent-green)" }}
+        >
+          ↑
+        </button>
+      </div>
+    </main>
   );
 }
