@@ -14,7 +14,7 @@ const activeRooms = [
   {
     id: 2,
     name: "hyperpop only 💀",
-    host: "adi",
+    host: "ash",
     playlist: "brain rot hours",
     listeners: 12,
     coverFrom: "#1a1a2e",
@@ -33,7 +33,7 @@ const activeRooms = [
 
 const suggestions = [
   { id: 1, name: "sam", genres: ["Lo-fi", "Indie"], match: 91 },
-  { id: 2, name: "sanam", genres: ["R&B", "Pop"], match: 84 },
+  { id: 2, name: "san", genres: ["R&B", "Pop"], match: 84 },
   { id: 3, name: "deepa", genres: ["Hyperpop", "Alt"], match: 78 },
 ];
 

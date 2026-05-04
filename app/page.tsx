@@ -17,10 +17,10 @@ interface Post {
 
 const stories = [
   { name: "Ashli", color: "#1DB954" },
-  { name: "Adi", color: "#9B59B6" },
+  { name: "Ash", color: "#9B59B6" },
   { name: "Deepa", color: "#E74C3C" },
   { name: "Sam", color: "#F39C12" },
-  { name: "Sanam", color: "#3498DB" },
+  { name: "San", color: "#3498DB" },
 ];
 
 export default function HomePage() {
@@ -43,7 +43,7 @@ export default function HomePage() {
   return (
     <>
       <AnimatePresence>
-        {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+        {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
       </AnimatePresence>
 
       <main className="min-h-screen pb-24" style={{ backgroundColor: "var(--background)" }}>
