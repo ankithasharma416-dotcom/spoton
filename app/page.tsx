@@ -99,7 +99,7 @@ export default function HomePage() {
                   {post.mood_tags?.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {post.mood_tags.map((tag, i) => (
-                            <span key={`${tag}-${i}`}className="text-xs px-2 py-1 rounded-full"
+                            <span key={i} className="text-xs px-2 py-1 rounded-full"
                           style={{ backgroundColor: "var(--background)", color: "var(--accent-green)" }}>
                           #{tag}
                         </span>
