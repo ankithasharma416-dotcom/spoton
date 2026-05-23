@@ -9,10 +9,21 @@ interface Profile {
   top_genres: string[] | null;
 }
 
+function getPersonalityBadge(genres: string[]): { label: string; emoji: string } {
+  if (genres.includes("Lo-fi") || genres.includes("Jazz")) return { label: "Night Owl", emoji: "🌙" };
+  if (genres.includes("Hyperpop") || genres.includes("Alt-Rock")) return { label: "Chaos Agent", emoji: "💀" };
+  if (genres.includes("R&B") || genres.includes("Pop")) return { label: "Vibe Curator", emoji: "✨" };
+  if (genres.includes("Classical") || genres.includes("Indie")) return { label: "Deep Listener", emoji: "🎻" };
+  if (genres.includes("Hip-Hop") || genres.includes("Metal")) return { label: "High Energy", emoji: "🔥" };
+  return { label: "Music Lover", emoji: "🎵" };
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [postCount, setPostCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [notLoggedIn, setNotLoggedIn] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   useEffect(() => {
     async function loadProfile() {
@@ -25,13 +36,20 @@ export default function ProfilePage() {
           return;
         }
 
-        const { data } = await supabase
-          .from("profiles")
-          .select("display_name, top_genres")
-          .eq("id", user.id)
-          .single();
+        const [{ data }, { count }] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("display_name, top_genres")
+            .eq("id", user.id)
+            .single(),
+          supabase
+            .from("posts")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", user.id),
+        ]);
 
         if (data) setProfile(data);
+        if (count !== null) setPostCount(count);
       } catch (err) {
         console.log("Profile load error:", err);
         setNotLoggedIn(true);
@@ -48,13 +66,9 @@ export default function ProfilePage() {
   };
 
   const displayName = profile?.display_name ?? "Anonymous";
-
-  // Safe array — handles null, undefined, or accidental string
-  const genres: string[] = Array.isArray(profile?.top_genres)
-    ? profile!.top_genres
-    : [];
-
+  const genres: string[] = Array.isArray(profile?.top_genres) ? profile!.top_genres : [];
   const initials = displayName.slice(0, 2).toUpperCase();
+  const badge = getPersonalityBadge(genres);
 
   if (loading) {
     return (
@@ -92,36 +106,40 @@ export default function ProfilePage() {
     <main className="min-h-screen pb-24" style={{ backgroundColor: "var(--background)" }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-14 pb-4">
-        <h1 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>
-          Profile
-        </h1>
+        <h1 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>Profile</h1>
         <button
           onClick={toggleTheme}
           className="text-sm px-3 py-1 rounded-full border"
           style={{ borderColor: "var(--border)", color: "var(--muted)" }}
         >
-          Toggle Theme
+          🌙 theme
         </button>
       </div>
 
       {/* Avatar + Name */}
       <div className="flex flex-col items-center px-4 py-6">
-        <div
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           className="w-24 h-24 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-4"
           style={{ background: "linear-gradient(135deg, var(--accent-green), var(--accent-purple))" }}
         >
           {initials}
-        </div>
+        </motion.div>
 
         <h2 className="text-2xl font-bold mb-1" style={{ color: "var(--foreground)" }}>
           {displayName}
         </h2>
+        <p className="text-sm mb-3" style={{ color: "var(--muted)" }}>
+          @{displayName.toLowerCase().replace(/\s/g, "")}
+        </p>
 
+        {/* Personality badge */}
         <span
           className="text-xs px-3 py-1 rounded-full font-medium"
           style={{ backgroundColor: "var(--accent-purple)", color: "#fff" }}
         >
-          🎵 Music Lover
+          {badge.emoji} {badge.label}
         </span>
       </div>
 
@@ -131,7 +149,7 @@ export default function ProfilePage() {
         style={{ backgroundColor: "var(--card)" }}
       >
         {[
-          { label: "Posts", value: "—" },
+          { label: "Posts", value: postCount },
           { label: "Connected", value: "—" },
           { label: "Avg Match", value: "—" },
         ].map((stat) => (
@@ -139,9 +157,7 @@ export default function ProfilePage() {
             <p className="text-xl font-bold" style={{ color: "var(--foreground)" }}>
               {stat.value}
             </p>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>
-              {stat.label}
-            </p>
+            <p className="text-xs" style={{ color: "var(--muted)" }}>{stat.label}</p>
           </div>
         ))}
       </div>
@@ -161,7 +177,7 @@ export default function ProfilePage() {
                 style={{
                   backgroundColor: "var(--card)",
                   color: "var(--accent-green)",
-                  border: "1px solid var(--accent-green)"
+                  border: "1px solid var(--accent-green)",
                 }}
               >
                 {genre}
@@ -173,16 +189,41 @@ export default function ProfilePage() {
 
       {/* Sign Out */}
       <div className="px-4">
-        <button
-          onClick={async () => {
-            await supabase.auth.signOut();
-            window.location.href = "/onboarding";
-          }}
-          className="w-full py-3 rounded-2xl text-sm font-semibold"
-          style={{ backgroundColor: "var(--card)", color: "var(--muted)" }}
-        >
-          Sign Out
-        </button>
+        {confirmSignOut ? (
+          <div className="rounded-2xl p-4 flex flex-col gap-3"
+            style={{ backgroundColor: "var(--card)" }}>
+            <p className="text-sm text-center" style={{ color: "var(--foreground)" }}>
+              are you sure you want to sign out?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmSignOut(false)}
+                className="flex-1 py-3 rounded-2xl text-sm font-semibold border"
+                style={{ borderColor: "var(--border)", color: "var(--muted)" }}
+              >
+                cancel
+              </button>
+              <button
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  window.location.href = "/onboarding";
+                }}
+                className="flex-1 py-3 rounded-2xl text-sm font-semibold text-white"
+                style={{ backgroundColor: "#e74c3c" }}
+              >
+                sign out
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmSignOut(true)}
+            className="w-full py-3 rounded-2xl text-sm font-semibold"
+            style={{ backgroundColor: "var(--card)", color: "var(--muted)" }}
+          >
+            Sign Out
+          </button>
+        )}
       </div>
     </main>
   );
