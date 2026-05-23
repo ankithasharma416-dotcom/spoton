@@ -12,8 +12,12 @@ const tabs = [
   { icon: User, label: "Profile", href: "/profile" },
 ];
 
+const HIDDEN_ON = ["/onboarding"];
+
 export default function BottomNav() {
   const pathname = usePathname();
+
+  if (HIDDEN_ON.includes(pathname)) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 border-t z-50"

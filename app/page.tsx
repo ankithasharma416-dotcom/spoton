@@ -28,9 +28,19 @@ export default function HomePage() {
   const [showSplash, setShowSplash] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    async function fetchPosts() {
+    async function init() {
+      // Check auth first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        window.location.href = "/onboarding";
+        return;
+      }
+      setAuthChecked(true);
+
+      // Then fetch posts
       const { data } = await supabase
         .from("posts")
         .select("*")
@@ -38,8 +48,11 @@ export default function HomePage() {
       if (data) setPosts(data);
       setLoading(false);
     }
-    fetchPosts();
+    init();
   }, []);
+
+  // Don't render anything until auth is confirmed
+  if (!authChecked) return null;
 
   return (
     <>
@@ -96,7 +109,11 @@ export default function HomePage() {
                       {post.display_name ?? "Anonymous"}
                     </span>
                   </div>
-                  {post.caption && <p className="text-sm mb-3" style={{ color: "var(--foreground)" }}>{post.caption}</p>}
+                  {post.caption && (
+                    <p className="text-sm mb-3" style={{ color: "var(--foreground)" }}>
+                      {post.caption}
+                    </p>
+                  )}
                   {post.mood_tags?.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {post.mood_tags.map((tag: string) => (
