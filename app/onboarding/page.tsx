@@ -7,10 +7,14 @@ const genres = ["Indie", "Alt-Rock", "Hyperpop", "R&B", "Lo-fi", "Pop", "Jazz", 
 
 export default function Onboarding() {
   const [step, setStep] = useState(1);
+  const [mode, setMode] = useState<"signup" | "login">("signup");
   const [displayName, setDisplayName] = useState("");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const toggleGenre = (genre: string) => {
     setSelectedGenres((prev) => {
@@ -21,49 +25,44 @@ export default function Onboarding() {
   };
 
   const handleSignUp = async () => {
-    if (!email) return;
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password: "spoton2026!",
-    });
-    if (error) {
-      alert(error.message);
-    } else {
-      setUserId(data.user?.id ?? null);
-      setStep(3);
-    }
+    if (!email || !password) return;
+    setLoading(true);
+    setError("");
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    setUserId(data.user?.id ?? null);
+    setStep(3);
+  };
+
+  const handleLogin = async () => {
+    if (!email || !password) return;
+    setLoading(true);
+    setError("");
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    window.location.href = "/";
   };
 
   const handleFinish = async () => {
-    if (!userId) {
-      alert("Session error — please try again");
-      return;
-    }
-    const { error } = await supabase
-      .from("profiles")
-      .insert({
-        id: userId,
-        display_name: displayName,
-        top_genres: selectedGenres.join(","),
-      });
-    if (error) {
-      alert(error.message);
-    } else {
-      window.location.href = "/";
-    }
+    if (!userId) { setError("Session error — please try again"); return; }
+    setLoading(true);
+    const { error } = await supabase.from("profiles").insert({
+      id: userId,
+      display_name: displayName,
+      top_genres: selectedGenres,
+    });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    window.location.href = "/";
   };
 
   // Step 1 — Welcome
   if (step === 1) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-8">
-        <Image
-          src="/logo.png"
-          alt="SPOTON"
-          width={120}
-          height={120}
-          className="rounded-full"
-        />
+        <Image src="/logo.png" alt="SPOTON" width={120} height={120} className="rounded-full" />
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-2">
             welcome to{" "}
@@ -72,20 +71,19 @@ export default function Onboarding() {
           </h1>
           <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
             connect with people through music.
-            no real name. no phone number.
-            just your taste.
+            no real name. no phone number. just your taste.
           </p>
         </div>
         <div className="flex flex-col gap-3 w-full">
           <button
-            onClick={() => setStep(2)}
+            onClick={() => { setMode("signup"); setStep(2); }}
             className="w-full py-4 rounded-2xl font-bold text-black text-sm"
             style={{ backgroundColor: "var(--accent-green)" }}
           >
             get started
           </button>
           <button
-            onClick={() => setStep(2)}
+            onClick={() => { setMode("login"); setStep(2); }}
             className="w-full py-4 rounded-2xl font-bold text-sm border"
             style={{ borderColor: "var(--border)", color: "var(--muted)" }}
           >
@@ -93,156 +91,116 @@ export default function Onboarding() {
           </button>
         </div>
         <p className="text-xs text-center" style={{ color: "var(--muted)" }}>
-          by continuing you agree to our terms.
-          we never sell your data. ever.
+          by continuing you agree to our terms. we never sell your data. ever.
         </p>
       </div>
     );
   }
 
-  // Step 2 — Email
+  // Step 2 — Email + Password
   if (step === 2) {
     return (
-      <div className="min-h-screen flex flex-col px-6 pt-16">
-        <p className="text-xs font-semibold uppercase tracking-wider mb-6"
-          style={{ color: "var(--accent-green)" }}>step 1 of 3</p>
-        <h2 className="text-2xl font-bold mb-2">what's your email?</h2>
-        <p className="text-sm" style={{ color: "var(--muted)" }}>
-          just for verification — it'll never show on your profile
-        </p>
-        <div className="mt-8 flex flex-col gap-4">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">
+            {mode === "login" ? "welcome back" : "what's your email?"}
+          </h1>
+          <p className="text-sm" style={{ color: "var(--muted)" }}>
+            {mode === "login" ? "sign in to your account" : "we'll keep it safe. delete your account anytime."}
+          </p>
+        </div>
+        <div className="w-full flex flex-col gap-4">
           <input
             type="email"
-            placeholder="your@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-4 rounded-2xl text-sm outline-none border"
-            style={{
-              backgroundColor: "var(--card)",
-              borderColor: "var(--border)",
-              color: "var(--foreground)",
-            }}
+            placeholder="you@example.com"
+            className="w-full px-4 py-3 rounded-xl border text-sm"
+            style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}
           />
-          <button
-            onClick={handleSignUp}
-            className="w-full py-4 rounded-2xl font-bold text-black text-sm"
-            style={{ backgroundColor: "var(--accent-green)" }}
-          >
-            continue
-          </button>
-        </div>
-        <div className="mt-6 flex items-center gap-3">
-          <div className="flex-1 h-px" style={{ backgroundColor: "var(--border)" }} />
-          <span className="text-xs" style={{ color: "var(--muted)" }}>or</span>
-          <div className="flex-1 h-px" style={{ backgroundColor: "var(--border)" }} />
-        </div>
-        <button
-          onClick={() => setStep(3)}
-          className="mt-6 w-full py-4 rounded-2xl font-bold text-sm border flex items-center justify-center gap-2"
-          style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
-        >
-          🎵 continue with Spotify
-        </button>
-      </div>
-    );
-  }
-
-  // Step 3 — Display name
-  if (step === 3) {
-    return (
-      <div className="min-h-screen flex flex-col px-6 pt-16">
-        <p className="text-xs font-semibold uppercase tracking-wider mb-6"
-          style={{ color: "var(--accent-green)" }}>step 2 of 3</p>
-        <h2 className="text-2xl font-bold mb-2">pick your name</h2>
-        <p className="text-sm" style={{ color: "var(--muted)" }}>
-          this is how people will know you. no real names needed.
-        </p>
-        <div className="mt-8 flex flex-col gap-4">
-          <div className="flex items-center gap-4 p-4 rounded-2xl border"
-            style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0"
-              style={{ background: "linear-gradient(135deg, var(--accent-green), var(--accent-purple))" }}
-            >
-              {displayName ? displayName[0].toUpperCase() : "?"}
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold">your avatar</p>
-              <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
-                generated from your name
-              </p>
-            </div>
-          </div>
           <input
-            type="text"
-            placeholder="e.g. moonchild, wavyy, static_k"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full px-4 py-4 rounded-2xl text-sm outline-none border"
-            style={{
-              backgroundColor: "var(--card)",
-              borderColor: "var(--border)",
-              color: "var(--foreground)",
-            }}
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="password"
+            className="w-full px-4 py-3 rounded-xl border text-sm"
+            style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}
           />
+          {error && <p className="text-sm text-red-400">{error}</p>}
           <button
-            onClick={() => setStep(4)}
-            disabled={!displayName.trim()}
+            onClick={mode === "login" ? handleLogin : handleSignUp}
+            disabled={!email || !password || loading}
             className="w-full py-4 rounded-2xl font-bold text-black text-sm disabled:opacity-40"
             style={{ backgroundColor: "var(--accent-green)" }}
           >
-            continue
+            {loading ? "..." : mode === "login" ? "sign in" : "continue"}
+          </button>
+          <button
+            onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); }}
+            className="text-sm text-center"
+            style={{ color: "var(--muted)" }}
+          >
+            {mode === "login" ? "don't have an account? sign up" : "already have an account? sign in"}
           </button>
         </div>
       </div>
     );
   }
 
-  // Step 4 — Pick genres
-  if (step === 4) {
-    return (
-      <div className="min-h-screen flex flex-col px-6 pt-16 pb-10">
-        <p className="text-xs font-semibold uppercase tracking-wider mb-6"
-          style={{ color: "var(--accent-green)" }}>step 3 of 3</p>
-        <h2 className="text-2xl font-bold mb-2">what do you vibe with?</h2>
-        <p className="text-sm mb-8" style={{ color: "var(--muted)" }}>
-          pick 3 to 5 genres — this is how we find your people
+  // Step 3 — Profile Setup (signup only)
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-8">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold mb-2">complete your profile</h1>
+        <p className="text-sm" style={{ color: "var(--muted)" }}>
+          this is how others will know you. no real name needed.
         </p>
-        <div className="flex flex-wrap gap-3 mb-10">
-          {genres.map((genre) => {
-            const selected = selectedGenres.includes(genre);
-            return (
+      </div>
+      <div className="w-full flex flex-col gap-6">
+        <div>
+          <label className="text-xs font-semibold uppercase mb-2 block" style={{ color: "var(--muted)" }}>
+            Display Name
+          </label>
+          <input
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="e.g., ashli, moonlight, sonic"
+            className="w-full px-4 py-3 rounded-xl border text-sm"
+            style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}
+          />
+        </div>
+        <div>
+          <label className="text-xs font-semibold uppercase mb-3 block" style={{ color: "var(--muted)" }}>
+            Top 5 Genres ({selectedGenres.length}/5)
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {genres.map((genre) => (
               <button
                 key={genre}
                 onClick={() => toggleGenre(genre)}
-                className="px-4 py-2 rounded-full text-sm font-semibold border transition-all"
+                className="px-4 py-2 rounded-full text-sm font-semibold transition-all border"
                 style={{
-                  backgroundColor: selected ? "var(--accent-green)" : "transparent",
-                  borderColor: selected ? "var(--accent-green)" : "var(--border)",
-                  color: selected ? "#000" : "var(--muted)",
+                  backgroundColor: selectedGenres.includes(genre) ? "var(--accent-green)" : "transparent",
+                  borderColor: "var(--border)",
+                  color: selectedGenres.includes(genre) ? "#000" : "var(--muted)",
                 }}
               >
                 {genre}
               </button>
-            );
-          })}
+            ))}
+          </div>
         </div>
+        {error && <p className="text-sm text-red-400">{error}</p>}
         <button
           onClick={handleFinish}
-          disabled={selectedGenres.length < 3}
+          disabled={!displayName.trim() || selectedGenres.length === 0 || loading}
           className="w-full py-4 rounded-2xl font-bold text-black text-sm disabled:opacity-40"
           style={{ backgroundColor: "var(--accent-green)" }}
         >
-          lets go 🎵
+          {loading ? "setting up..." : "finish setup"}
         </button>
-        <p className="text-xs text-center mt-3" style={{ color: "var(--muted)" }}>
-          {selectedGenres.length < 3
-            ? `pick ${3 - selectedGenres.length} more to continue`
-            : selectedGenres.length === 5
-            ? `5/5 selected — max reached!`
-            : `${selectedGenres.length}/5 selected — looking good!`}
-        </p>
       </div>
-    );
-  }
+    </div>
+  );
 }
