@@ -10,7 +10,8 @@ interface Post {
   playlist_name: string;
   caption: string;
   mood_tags: string[];
-  gradient: string;
+  cover_from: string;
+  cover_to: string;
   display_name: string;
   created_at: string;
 }
@@ -53,7 +54,7 @@ export default function HomePage() {
             style={{ background: "linear-gradient(135deg, var(--accent-green), var(--accent-purple))" }} />
         </div>
 
-        <div className="flex gap-4 px-4 py-3 overflow-x-auto">
+        <div className="flex gap-4 px-4 py-3 overflow-x-auto scrollbar-hide">
           {stories.map((story) => (
             <div key={story.name} className="flex flex-col items-center gap-1 shrink-0">
               <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg"
@@ -82,7 +83,7 @@ export default function HomePage() {
               <motion.div key={post.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
                 className="rounded-2xl overflow-hidden" style={{ backgroundColor: "var(--card)" }}>
                 <div className="h-32 flex items-center justify-center"
-                  style={{ background: post.gradient || "linear-gradient(135deg, #1DB954, #9B59B6)" }}>
+                  style={{ background: `linear-gradient(135deg, ${post.cover_from || "#1DB954"}, ${post.cover_to || "#9B59B6"})` }}>
                   <span className="text-white text-lg font-bold drop-shadow">🎵 {post.playlist_name}</span>
                 </div>
                 <div className="p-4">
@@ -98,9 +99,9 @@ export default function HomePage() {
                   {post.caption && <p className="text-sm mb-3" style={{ color: "var(--foreground)" }}>{post.caption}</p>}
                   {post.mood_tags?.length > 0 && (
                     <div className="flex flex-wrap gap-2">
-                      {post.mood_tags.map((tag, i) => (
-                            <span key={i} className="text-xs px-2 py-1 rounded-full"
-                          style={{ backgroundColor: "var(--background)", color: "var(--accent-green)" }}>
+                      {post.mood_tags.map((tag: string) => (
+                        <span key={tag} className="text-xs px-3 py-1 rounded-full font-medium"
+                          style={{ backgroundColor: "var(--accent-purple)", color: "#fff" }}>
                           #{tag}
                         </span>
                       ))}
