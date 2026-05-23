@@ -10,30 +10,56 @@ const gradients = [
   { name: "Sunset", from: "#2c1a4a", to: "#e67e22" },
 ];
 
+const moodOptions = [
+  "🌙 late night",
+  "✨ feel good",
+  "💀 unhinged",
+  "🫀 emotional",
+  "🔥 hype",
+  "☁️ chill",
+];
+
 export default function Create() {
   const [step, setStep] = useState<"pick" | "caption" | "done">("pick");
   const [selectedGradient, setSelectedGradient] = useState(gradients[0]);
   const [playlistName, setPlaylistName] = useState("");
   const [caption, setCaption] = useState("");
+  const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const toggleMood = (tag: string) => {
+    setSelectedMoods((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
 
   const handlePost = async () => {
     setSaving(true);
+    setError("");
+
     const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      setError("you need to be logged in to post");
+      setSaving(false);
+      return;
+    }
 
     const { data: profile } = await supabase
       .from("profiles")
       .select("display_name")
-      .eq("id", user?.id)
+      .eq("id", user.id)
       .single();
 
     const { error } = await supabase
       .from("posts")
       .insert({
-        user_id: user?.id,
+        user_id: user.id,
         display_name: profile?.display_name ?? "anonymous",
         playlist_name: playlistName,
         caption,
+        mood_tags: selectedMoods,
         cover_from: selectedGradient.from,
         cover_to: selectedGradient.to,
         likes: 0,
@@ -41,7 +67,7 @@ export default function Create() {
 
     setSaving(false);
     if (error) {
-      alert(error.message);
+      setError(error.message);
     } else {
       setStep("done");
     }
@@ -56,7 +82,13 @@ export default function Create() {
           your playlist is out there now. someone's going to love it.
         </p>
         <button
-          onClick={() => { setStep("pick"); setPlaylistName(""); setCaption(""); }}
+          onClick={() => {
+            setStep("pick");
+            setPlaylistName("");
+            setCaption("");
+            setSelectedMoods([]);
+            setError("");
+          }}
           className="mt-4 px-6 py-3 rounded-full text-sm font-bold text-black"
           style={{ backgroundColor: "var(--accent-green)" }}
         >
@@ -104,7 +136,6 @@ export default function Create() {
           </p>
         </div>
 
-        {/* Playlist name input */}
         <div className="px-4 flex flex-col gap-4">
           <input
             type="text"
@@ -134,19 +165,27 @@ export default function Create() {
 
           {/* Mood tags */}
           <p className="text-xs font-semibold uppercase tracking-wider"
-            style={{ color: "var(--muted)" }}>mood tags</p>
+            style={{ color: "var(--muted)" }}>
+            mood tags {selectedMoods.length > 0 && `(${selectedMoods.length} selected)`}
+          </p>
           <div className="flex flex-wrap gap-2">
-            {["🌙 late night", "✨ feel good", "💀 unhinged", "🫀 emotional", "🔥 hype", "☁️ chill"].map((tag) => (
+            {moodOptions.map((tag) => (
               <button
                 key={tag}
-                onClick={() => setCaption(caption + " " + tag)}
-                className="text-xs px-3 py-1.5 rounded-full border"
-                style={{ borderColor: "var(--border)", color: "var(--muted)" }}
+                onClick={() => toggleMood(tag)}
+                className="text-xs px-3 py-1.5 rounded-full border transition-all"
+                style={{
+                  borderColor: selectedMoods.includes(tag) ? "var(--accent-purple)" : "var(--border)",
+                  backgroundColor: selectedMoods.includes(tag) ? "var(--accent-purple)" : "transparent",
+                  color: selectedMoods.includes(tag) ? "#fff" : "var(--muted)",
+                }}
               >
                 {tag}
               </button>
             ))}
           </div>
+
+          {error && <p className="text-sm text-red-400">{error}</p>}
         </div>
       </div>
     );
